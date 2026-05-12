@@ -1,0 +1,36 @@
+bybit_testnet: true
+
+risk:
+  max_drawdown_pct: 20.0
+  max_position_size_pct: 10.0
+  max_open_positions: 3
+  daily_loss_limit_pct: 5.0
+  leverage: 3
+
+backtesting:
+  fee_rate: 0.00055
+  slippage_pct: 0.05
+  initial_capital: 250.0
+
+strategies:
+  - name: ema_cross
+    enabled: false
+    symbols: ["BTCUSDT"]
+    interval: "5"
+    params:
+      fast_ema: 9
+      slow_ema: 21
+  - name: grid
+    enabled: false
+    symbols: ["ETHUSDT"]
+    interval: "15"
+    params:
+      grid_count: 10
+      grid_spacing_pct: 0.5
+  - name: bb_reversion
+    enabled: false
+    symbols: ["BTCUSDT"]
+    interval: "15"
+    params:
+      period: 20
+      std_dev: 2.0
