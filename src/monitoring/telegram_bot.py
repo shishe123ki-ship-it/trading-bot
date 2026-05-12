@@ -53,6 +53,10 @@ class TelegramMonitor:
             await self._app.stop()
             await self._app.shutdown()
 
+    def _is_authorized(self, update: Update) -> bool:
+        """Prüft ob die Nachricht vom konfigurierten Chat kommt."""
+        return str(update.effective_chat.id) == self._chat_id
+
     async def _send(self, text: str) -> None:
         if self._app and self._app.bot:
             try:
@@ -71,6 +75,8 @@ class TelegramMonitor:
         await self._send(f"⚠️ Risk-Limit überschritten: {event.data}")
 
     async def cmd_status(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        if not self._is_authorized(update):
+            return
         pnl = await self._portfolio.get_realized_pnl()
         positions = await self._portfolio.get_open_position_count()
         daily = await self._portfolio.get_daily_pnl_pct()
@@ -83,14 +89,20 @@ class TelegramMonitor:
         )
 
     async def cmd_pause(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        if not self._is_authorized(update):
+            return
         self._risk.pause()
         await update.message.reply_text("⏸ Bot pausiert. Neue Orders werden geblockt.")
 
     async def cmd_resume(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        if not self._is_authorized(update):
+            return
         self._risk.resume()
         await update.message.reply_text("▶️ Bot fortgesetzt.")
 
     async def cmd_set(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        if not self._is_authorized(update):
+            return
         if not context.args or len(context.args) != 2:
             await update.message.reply_text(
                 "Verwendung: /set <parameter> <wert>\nBeispiel: /set leverage 2"
@@ -104,6 +116,8 @@ class TelegramMonitor:
             await update.message.reply_text(f"❌ Fehler: {exc}")
 
     async def cmd_backtest(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        if not self._is_authorized(update):
+            return
         if not context.args or len(context.args) != 3:
             await update.message.reply_text(
                 "Verwendung: /backtest <strategie> <symbol> <tage>\n"
@@ -127,13 +141,17 @@ class TelegramMonitor:
             f"🔄 Backtest läuft: {strategy_name} / {symbol} ({days} Tage)…"
         )
         cfg = StrategyEntry(name=strategy_name, symbols=[symbol])
-        result = await self._backtest.run(cls, cfg, symbol, days)
-        await update.message.reply_text(
-            f"📈 Backtest-Ergebnis\n"
-            f"Strategie: {strategy_name} / {symbol}\n"
-            f"Trades: {result.total_trades}\n"
-            f"Win Rate: {result.win_rate:.1%}\n"
-            f"PnL: {result.total_pnl:.4f} USDT\n"
-            f"Sharpe: {result.sharpe_ratio:.2f}\n"
-            f"Max Drawdown: {result.max_drawdown_pct:.2f}%"
-        )
+        try:
+            result = await self._backtest.run(cls, cfg, symbol, days)
+            await update.message.reply_text(
+                f"📈 Backtest-Ergebnis\n"
+                f"Strategie: {strategy_name} / {symbol}\n"
+                f"Trades: {result.total_trades}\n"
+                f"Win Rate: {result.win_rate:.1%}\n"
+                f"PnL: {result.total_pnl:.4f} USDT\n"
+                f"Sharpe: {result.sharpe_ratio:.2f}\n"
+                f"Max Drawdown: {result.max_drawdown_pct:.2f}%"
+            )
+        except Exception as exc:
+            log.error("backtest_failed", error=str(exc))
+            await update.message.reply_text(f"❌ Backtest fehlgeschlagen: {exc}")

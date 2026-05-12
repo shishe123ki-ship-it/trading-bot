@@ -63,6 +63,7 @@ async def test_on_risk_breached_sends_message(monitor):
 
 async def test_cmd_pause_calls_risk_pause(monitor):
     update = MagicMock()
+    update.effective_chat.id = "12345"
     update.message.reply_text = AsyncMock()
     await monitor.cmd_pause(update, MagicMock())
     monitor._risk.pause.assert_called_once()
@@ -71,6 +72,7 @@ async def test_cmd_pause_calls_risk_pause(monitor):
 
 async def test_cmd_resume_calls_risk_resume(monitor):
     update = MagicMock()
+    update.effective_chat.id = "12345"
     update.message.reply_text = AsyncMock()
     await monitor.cmd_resume(update, MagicMock())
     monitor._risk.resume.assert_called_once()
@@ -78,6 +80,7 @@ async def test_cmd_resume_calls_risk_resume(monitor):
 
 async def test_cmd_status_includes_pnl_and_positions(monitor):
     update = MagicMock()
+    update.effective_chat.id = "12345"
     update.message.reply_text = AsyncMock()
     await monitor.cmd_status(update, MagicMock())
     update.message.reply_text.assert_called_once()
@@ -88,6 +91,7 @@ async def test_cmd_status_includes_pnl_and_positions(monitor):
 
 async def test_cmd_set_valid_key_updates_config(monitor):
     update = MagicMock()
+    update.effective_chat.id = "12345"
     update.message.reply_text = AsyncMock()
     ctx = MagicMock()
     ctx.args = ["leverage", "5"]
@@ -99,6 +103,7 @@ async def test_cmd_set_valid_key_updates_config(monitor):
 
 async def test_cmd_set_wrong_arg_count_shows_usage(monitor):
     update = MagicMock()
+    update.effective_chat.id = "12345"
     update.message.reply_text = AsyncMock()
     ctx = MagicMock()
     ctx.args = ["leverage"]   # fehlt der Wert
@@ -109,6 +114,7 @@ async def test_cmd_set_wrong_arg_count_shows_usage(monitor):
 
 async def test_cmd_backtest_unknown_strategy_shows_error(monitor):
     update = MagicMock()
+    update.effective_chat.id = "12345"
     update.message.reply_text = AsyncMock()
     ctx = MagicMock()
     ctx.args = ["unknown_strat", "BTCUSDT", "7"]
