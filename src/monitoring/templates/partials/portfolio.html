@@ -1,0 +1,12 @@
+<div class="grid">
+  <div class="metric">
+    <div class="value">{{ open_positions }}</div>
+    <div class="label">Offene Positionen</div>
+  </div>
+  <div class="metric">
+    <div class="value {{ 'pos' if realized_pnl >= 0 else 'neg' }}">
+      {{ "%.4f" | format(realized_pnl) }}
+    </div>
+    <div class="label">Realisierter PnL (USDT)</div>
+  </div>
+</div>

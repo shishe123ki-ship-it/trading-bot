@@ -1,0 +1,25 @@
+{% if trades %}
+<table>
+  <thead>
+    <tr>
+      <th>Zeit</th><th>Symbol</th><th>Seite</th>
+      <th>Qty</th><th>Preis</th><th>Gebühr</th><th>Strategie</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for t in trades %}
+    <tr>
+      <td>{{ t.timestamp[:19] }}</td>
+      <td>{{ t.symbol }}</td>
+      <td class="{{ 'pos' if t.side == 'Buy' else 'neg' }}">{{ t.side }}</td>
+      <td>{{ t.qty }}</td>
+      <td>{{ t.avg_price }}</td>
+      <td>{{ "%.4f" | format(t.fee) }}</td>
+      <td>{{ t.strategy_id }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color:#8b949e">Noch keine Trades.</p>
+{% endif %}
