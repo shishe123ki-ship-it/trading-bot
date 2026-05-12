@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"C:/Users/ewald/OneDrive/Desktop/Claude/Team Inbox/Agenten handeln\"/*.*)",
+      "Bash(pip install *)",
+      "Bash(pytest tests/unit/test_types.py -v)",
+      "Bash(python -m pytest tests/unit/test_types.py -v)",
+      "Bash(python -m mypy src/core/types.py --strict)",
+      "Bash(pytest tests/unit/test_event_bus.py -v)",
+      "Bash(python -m pytest tests/unit/test_event_bus.py -v)",
+      "Bash(pytest tests/unit/test_config.py -v)",
+      "Bash(python -m pytest tests/unit/test_config.py -v)",
+      "Bash(python -c ' *)",
+      "Bash(pytest tests/unit/test_base_strategy.py -v)",
+      "Bash(python -m pytest tests/unit/test_base_strategy.py -v)",
+      "Bash(python -m pytest tests/unit/test_feed.py -v)",
+      "Bash(python -m pytest -v --tb=short)",
+      "Bash(pytest -v --tb=short)",
+      "Bash(python -m pip install -e . -q)",
+      "Bash(docker build *)",
+      "Bash(python -m pip install -q pytest pytest-asyncio pytest-mock)",
+      "Bash(python -m pip install -q pydantic pydantic-settings structlog aiohttp aiosqlite)"
+    ]
+  }
+}
