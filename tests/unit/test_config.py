@@ -63,3 +63,13 @@ def test_risk_config_update_unknown_key_raises():
         assert False, "Expected ValueError"
     except ValueError as e:
         assert "Unknown risk parameter" in str(e)
+
+
+def test_risk_config_update_invalid_value_raises():
+    risk = RiskConfig()
+    try:
+        risk.update("leverage", "not_a_number")
+        assert False, "Expected ValueError"
+    except ValueError as e:
+        assert "Invalid value" in str(e)
+        assert "leverage" in str(e)

@@ -19,7 +19,12 @@ class RiskConfig(BaseModel):
         if not hasattr(self, key):
             raise ValueError(f"Unknown risk parameter: {key}")
         field_type = type(getattr(self, key))
-        setattr(self, key, field_type(value))
+        try:
+            setattr(self, key, field_type(value))
+        except (ValueError, TypeError) as e:
+            raise ValueError(
+                f"Invalid value '{value}' for parameter '{key}' (expected {field_type.__name__})"
+            ) from e
 
 
 class BacktestConfig(BaseModel):
