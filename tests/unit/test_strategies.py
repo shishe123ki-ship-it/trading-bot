@@ -100,3 +100,58 @@ async def test_ema_cross_generates_short_signal_on_death_cross():
 
     short_signals = [s for s in signals if s.side == "short"]
     assert len(short_signals) >= 1
+
+
+# --- Grid ---
+from src.strategies.grid import GridStrategy
+
+
+async def test_grid_returns_none_on_first_candle():
+    cfg = StrategyEntry(name="grid", params={"grid_count": 4, "grid_spacing_pct": 1.0})
+    s = GridStrategy(config=cfg)
+    result = await s.on_candle(_candle(100.0))
+    assert result is None
+
+
+async def test_grid_state_initialized_after_first_candle():
+    cfg = StrategyEntry(name="grid", params={"grid_count": 4, "grid_spacing_pct": 1.0})
+    s = GridStrategy(config=cfg)
+    await s.on_candle(_candle(100.0))
+    state = s.get_state()
+    assert state["initialized"] is True
+    assert len(state["grid_levels"]) > 0
+    assert state["center_price"] == pytest.approx(100.0)
+
+
+async def test_grid_generates_buy_signal_on_drop_through_level():
+    cfg = StrategyEntry(name="grid", params={"grid_count": 6, "grid_spacing_pct": 1.0})
+    s = GridStrategy(config=cfg)
+
+    await s.on_candle(_candle(100.0))  # Initialize at 100.0
+    # Grid levels below ~100: 99.0, 98.0, 97.0
+    # Drop from 100 to 98.5 should cross the 99.0 level
+    result = await s.on_candle(_candle(98.5))
+    assert result is not None
+    assert result.side == "long"
+    assert result.strategy_id == "grid"
+
+
+async def test_grid_generates_sell_signal_on_rise_through_level():
+    cfg = StrategyEntry(name="grid", params={"grid_count": 6, "grid_spacing_pct": 1.0})
+    s = GridStrategy(config=cfg)
+
+    await s.on_candle(_candle(100.0))  # Initialize at 100.0
+    # Grid levels above ~100: 101.0, 102.0, 103.0
+    # Rise from 100 to 101.5 should cross the 101.0 level
+    result = await s.on_candle(_candle(101.5))
+    assert result is not None
+    assert result.side == "short"
+
+
+async def test_grid_no_signal_if_price_stays_between_levels():
+    cfg = StrategyEntry(name="grid", params={"grid_count": 4, "grid_spacing_pct": 2.0})
+    s = GridStrategy(config=cfg)
+    await s.on_candle(_candle(100.0))  # Initialize
+    # Small move that doesn't cross any level (±2% spacing → levels at 98, 102)
+    result = await s.on_candle(_candle(100.5))
+    assert result is None

@@ -3,13 +3,13 @@ from __future__ import annotations
 from src.core.config import StrategyEntry
 from src.strategies.base import BaseStrategy
 from src.strategies.ema_cross import EmaCrossStrategy
+from src.strategies.grid import GridStrategy
 
-# Grid und BB werden in späteren Tasks hinzugefügt.
-# Platzhalter — wird in Task 6 + 7 erweitert.
+# bb_reversion wird in Task 7 hinzugefügt — temporärer Platzhalter bleibt
 STRATEGY_REGISTRY: dict[str, type[BaseStrategy]] = {
     "ema_cross": EmaCrossStrategy,
-    "grid": EmaCrossStrategy,        # temporärer Platzhalter — wird in Task 6 ersetzt
-    "bb_reversion": EmaCrossStrategy, # temporärer Platzhalter — wird in Task 7 ersetzt
+    "grid": GridStrategy,
+    "bb_reversion": EmaCrossStrategy,  # temporärer Platzhalter — wird in Task 7 ersetzt
 }
 
 
