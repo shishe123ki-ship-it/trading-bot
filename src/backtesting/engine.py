@@ -60,7 +60,11 @@ class BacktestEngine:
         limit = min(days * 24, 1000)
         candles = self._fetch_ohlcv(symbol, interval, limit)
         strategy = strategy_cls(config=strategy_cfg)
-        return asyncio.run(self._simulate_async(strategy, candles, symbol, days))
+        loop = asyncio.new_event_loop()
+        try:
+            return loop.run_until_complete(self._simulate_async(strategy, candles, symbol, days))
+        finally:
+            loop.close()
 
     def _fetch_ohlcv(self, symbol: str, interval: str, limit: int) -> list[Candle]:
         result = self._session.get_kline(
@@ -97,6 +101,7 @@ class BacktestEngine:
         equity_curve: list[float] = [equity]
         max_drawdown = 0.0
         trade_pnls: list[float] = []
+        trade_returns: list[float] = []
         position: dict | None = None
 
         for candle in candles:
@@ -125,6 +130,7 @@ class BacktestEngine:
                 pnl = position["notional"] * pnl_pct - fee
                 equity += pnl
                 trade_pnls.append(pnl)
+                trade_returns.append(pnl / position["notional"])
                 position = None
 
             peak = max(peak, equity)
@@ -136,7 +142,7 @@ class BacktestEngine:
         winners = [p for p in trade_pnls if p > 0]
         win_rate = len(winners) / total_trades if total_trades > 0 else 0.0
         total_pnl = sum(trade_pnls)
-        sharpe = self._sharpe(trade_pnls)
+        sharpe = self._sharpe(trade_returns)
 
         log.info(
             "backtest_complete",
