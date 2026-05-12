@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from src.core.config import StrategyEntry
 from src.strategies.base import BaseStrategy
+from src.strategies.bb_reversion import BollingerReversionStrategy
 from src.strategies.ema_cross import EmaCrossStrategy
 from src.strategies.grid import GridStrategy
 
-# bb_reversion wird in Task 7 hinzugefügt — temporärer Platzhalter bleibt
 STRATEGY_REGISTRY: dict[str, type[BaseStrategy]] = {
     "ema_cross": EmaCrossStrategy,
     "grid": GridStrategy,
-    "bb_reversion": EmaCrossStrategy,  # temporärer Platzhalter — wird in Task 7 ersetzt
+    "bb_reversion": BollingerReversionStrategy,
 }
 
 

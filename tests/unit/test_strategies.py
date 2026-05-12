@@ -155,3 +155,90 @@ async def test_grid_no_signal_if_price_stays_between_levels():
     # Small move that doesn't cross any level (±2% spacing → levels at 98, 102)
     result = await s.on_candle(_candle(100.5))
     assert result is None
+
+
+# --- Bollinger-Band ---
+from src.strategies.bb_reversion import BollingerReversionStrategy
+import statistics
+
+
+async def test_bb_returns_none_before_period_warmup():
+    cfg = StrategyEntry(name="bb_reversion", params={"period": 5, "std_dev": 2.0})
+    s = BollingerReversionStrategy(config=cfg)
+    for _ in range(4):
+        result = await s.on_candle(_candle(100.0))
+    assert result is None
+
+
+async def test_bb_state_has_expected_keys():
+    cfg = StrategyEntry(name="bb_reversion", params={"period": 3})
+    s = BollingerReversionStrategy(config=cfg)
+    state = s.get_state()
+    assert "sma" in state
+    assert "lower_band" in state
+    assert "upper_band" in state
+    assert "in_position" in state
+
+
+async def test_bb_generates_long_signal_below_lower_band():
+    cfg = StrategyEntry(name="bb_reversion", params={"period": 5, "std_dev": 1.0, "size_pct": 0.05})
+    s = BollingerReversionStrategy(config=cfg)
+
+    # Prices with variation to create real bands
+    base = [100.0, 101.0, 99.0, 102.0, 98.0]
+    for p in base:
+        await s.on_candle(_candle(p))
+
+    # Calculate expected lower band
+    prices_list = [100.0, 101.0, 99.0, 102.0, 98.0]
+    sma = sum(prices_list) / 5
+    std = statistics.stdev(prices_list)
+    lower = sma - 1.0 * std
+
+    # Drop well below lower band
+    result = await s.on_candle(_candle(lower - 5.0))
+    assert result is not None
+    assert result.side == "long"
+    assert result.size_pct == pytest.approx(0.05)
+
+
+async def test_bb_generates_short_signal_above_upper_band():
+    cfg = StrategyEntry(name="bb_reversion", params={"period": 5, "std_dev": 1.0})
+    s = BollingerReversionStrategy(config=cfg)
+
+    base = [100.0, 101.0, 99.0, 102.0, 98.0]
+    for p in base:
+        await s.on_candle(_candle(p))
+
+    prices_list = [100.0, 101.0, 99.0, 102.0, 98.0]
+    sma = sum(prices_list) / 5
+    std = statistics.stdev(prices_list)
+    upper = sma + 1.0 * std
+
+    result = await s.on_candle(_candle(upper + 5.0))
+    assert result is not None
+    assert result.side == "short"
+
+
+async def test_bb_generates_close_signal_when_price_returns_to_sma():
+    cfg = StrategyEntry(name="bb_reversion", params={"period": 5, "std_dev": 1.0})
+    s = BollingerReversionStrategy(config=cfg)
+
+    base = [100.0, 101.0, 99.0, 102.0, 98.0]
+    for p in base:
+        await s.on_candle(_candle(p))
+
+    # Enter long position
+    prices_list = [100.0, 101.0, 99.0, 102.0, 98.0]
+    sma = sum(prices_list) / 5
+    std = statistics.stdev(prices_list)
+    lower = sma - 1.0 * std
+
+    await s.on_candle(_candle(lower - 5.0))
+    assert s._in_position is True
+
+    # Price returns to SMA
+    result = await s.on_candle(_candle(sma + 0.5))
+    assert result is not None
+    assert result.side == "close"
+    assert s._in_position is False
