@@ -18,5 +18,10 @@ class EventBus:
 
     async def publish(self, event: Event) -> None:
         handlers = self._handlers.get(event.type, [])
-        if handlers:
-            await asyncio.gather(*(h(event) for h in handlers))
+        coros = []
+        for h in handlers:
+            result = h(event)
+            if asyncio.iscoroutine(result):
+                coros.append(result)
+        if coros:
+            await asyncio.gather(*coros)
