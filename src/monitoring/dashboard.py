@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 
 DB_PATH = Path(os.environ.get("DASHBOARD_DB_PATH", "data/portfolio.db"))
+INITIAL_CAPITAL = float(os.environ.get("DASHBOARD_INITIAL_CAPITAL", "250.0"))
 _TEMPLATES_DIR = Path(__file__).parent / "templates"
 
 app = FastAPI(title="Trading Bot Dashboard")
@@ -58,6 +59,45 @@ async def trades_partial(request: Request) -> HTMLResponse:
     trade_list = await trades(limit=20)
     return templates.TemplateResponse(
         request, "partials/trades.html", {"trades": trade_list}
+    )
+
+
+@app.get("/api/equity")
+async def equity() -> list[dict]:
+    if not DB_PATH.exists():
+        return []
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            "SELECT timestamp, fee FROM trades ORDER BY timestamp ASC"
+        )
+        rows = await cursor.fetchall()
+    result = []
+    running_equity = INITIAL_CAPITAL
+    for row in rows:
+        running_equity -= row["fee"]
+        result.append({"timestamp": row["timestamp"], "equity": round(running_equity, 4)})
+    return result
+
+
+@app.get("/api/strategies")
+async def strategies_summary() -> list[dict]:
+    if not DB_PATH.exists():
+        return []
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            "SELECT strategy_id, COUNT(*) as trade_count FROM trades GROUP BY strategy_id"
+        )
+        rows = await cursor.fetchall()
+        return [dict(row) for row in rows]
+
+
+@app.get("/partials/strategies", response_class=HTMLResponse)
+async def strategies_partial(request: Request) -> HTMLResponse:
+    data = await strategies_summary()
+    return templates.TemplateResponse(
+        request, "partials/strategies.html", {"strategies": data}
     )
 
 

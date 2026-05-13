@@ -40,5 +40,52 @@
        hx-swap="innerHTML">
     <span style="color:#8b949e">Lade…</span>
   </div>
+
+  <h2>Strategien</h2>
+  <div class="card"
+       hx-get="/partials/strategies"
+       hx-trigger="load, every 30s"
+       hx-swap="innerHTML">
+    <span style="color:#8b949e">Lade&#8230;</span>
+  </div>
+
+  <h2>Equity-Kurve</h2>
+  <div class="card">
+    <canvas id="equity-chart" style="max-height:300px"></canvas>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4/dist/chart.umd.min.js"></script>
+  <script>
+    let equityChart = null;
+    async function loadEquityChart() {
+      const data = await fetch('/api/equity').then(r => r.json());
+      if (equityChart) { equityChart.destroy(); equityChart = null; }
+      if (!data.length) return;
+      equityChart = new Chart(document.getElementById('equity-chart'), {
+        type: 'line',
+        data: {
+          labels: data.map(d => d.timestamp.slice(0, 16)),
+          datasets: [{
+            label: 'Equity (USDT)',
+            data: data.map(d => d.equity),
+            borderColor: '#58a6ff',
+            backgroundColor: 'rgba(88,166,255,0.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 2,
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { labels: { color: '#e6edf3' } } },
+          scales: {
+            y: { ticks: { color: '#e6edf3' }, grid: { color: '#30363d' } },
+            x: { ticks: { color: '#8b949e', maxTicksLimit: 8 }, grid: { color: '#30363d' } }
+          }
+        }
+      });
+    }
+    loadEquityChart();
+    setInterval(loadEquityChart, 60000);
+  </script>
 </body>
 </html>

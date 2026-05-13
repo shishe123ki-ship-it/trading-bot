@@ -1,0 +1,17 @@
+{% if strategies %}
+<table>
+  <thead>
+    <tr><th>Strategie</th><th>Trades</th></tr>
+  </thead>
+  <tbody>
+    {% for s in strategies %}
+    <tr>
+      <td>{{ s.strategy_id }}</td>
+      <td>{{ s.trade_count }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color:#8b949e">Keine Strategie-Daten.</p>
+{% endif %}
