@@ -16,7 +16,7 @@ Startkapital: ~250 €. Plattform: Bybit Perpetuals. Sprache: Python 3.12.
 
 ---
 
-## Aktueller Stand (2026-05-12)
+## Aktueller Stand (2026-05-13)
 
 ### Implementierte Pläne
 | Plan | Tag | Tests | Status |
@@ -61,7 +61,7 @@ Startkapital: ~250 €. Plattform: Bybit Perpetuals. Sprache: Python 3.12.
 | `src/backtesting/engine.py` | BacktestEngine: OHLCV-Fetch (Bybit REST), Strategie-Simulation, Metriken | ✅ |
 | `src/monitoring/__init__.py` | Paket-Stub | ✅ |
 | `src/monitoring/telegram_bot.py` | TelegramMonitor: Push-Alerts + /pause /resume /status /set /backtest | ✅ |
-| `src/monitoring/dashboard.py` | FastAPI Dashboard: /api/portfolio, /api/trades, HTMX-Partials, SSE | ✅ |
+| `src/monitoring/dashboard.py` | FastAPI Dashboard: /api/portfolio, /api/trades, /api/equity, /api/strategies, HTMX-Partials, SSE | ✅ |
 | `src/monitoring/templates/index.html` | Hauptseite (Dark-Theme, HTMX-Polling) | ✅ |
 | `src/monitoring/templates/partials/portfolio.html` | Portfolio-Metriken-Fragment | ✅ |
 | `src/monitoring/templates/partials/trades.html` | Trades-Tabelle-Fragment | ✅ |
@@ -93,10 +93,10 @@ Startkapital: ~250 €. Plattform: Bybit Perpetuals. Sprache: Python 3.12.
 | `tests/unit/test_portfolio_tracker.py` | 8 | SQLite-Persistenz, PnL, Drawdown |
 | `tests/unit/test_risk_manager.py` | 9 | daily_loss, drawdown, positions, pause/resume |
 | `tests/unit/test_order_manager.py` | 4 | Qty-Berechnung, Signal-Verarbeitung |
-| `tests/unit/test_strategies.py` | 18 | EMA, Grid, Bollinger-Band (TDD) |
+| `tests/unit/test_strategies.py` | 23 | EMA, Grid, Bollinger-Band, RSI (TDD) |
 | `tests/unit/test_backtesting.py` | 4 | BacktestResult, OHLCV-Parsing, run(), Flatline |
 | `tests/unit/test_telegram_bot.py` | 8 | Push-Alerts, Commands (mit Auth-Guard) |
-| `tests/unit/test_dashboard.py` | 6 | FastAPI-Endpoints (httpx AsyncClient) |
+| `tests/unit/test_dashboard.py` | 12 | FastAPI-Endpoints inkl. /api/equity, /api/strategies (httpx AsyncClient) |
 
 ---
 
@@ -145,15 +145,21 @@ asyncio Event Bus (pub/sub)
 - `settings.backtesting` — BacktestConfig (fee_rate, slippage_pct, initial_capital)
 - `settings.strategies` — list[StrategyEntry]
 
-### Deployment-Checkliste (nach Plan 3 abgeschlossen)
-1. Hetzner CX22 VPS erstellen, Docker + Docker Compose installieren
-2. `git clone <repo>`, `cp config/.env.example config/.env`
-3. API-Keys eintragen, `bybit_testnet: true` lassen
+### Deployment-Checkliste (⏳ als nächstes — wartet auf externe Ressourcen)
+
+**Externe Ressourcen noch ausstehend:**
+- [ ] Hetzner CX22 VPS erstellen (hetzner.com → Cloud)
+- [ ] Bybit Testnet API-Keys anlegen (testnet.bybit.com → API-Verwaltung, Read+Trade, KEIN Withdrawal)
+- [ ] Telegram Bot erstellen (@BotFather → /newbot) + Chat-ID ermitteln (@userinfobot)
+
+**Deployment-Schritte (sobald VPS bereit):**
+1. `bash scripts/setup-vps.sh <repo-url>` auf dem VPS ausführen
+2. API-Keys in `config/.env` eintragen
+3. Caddy-Passwort setzen: `caddy hash-password --plaintext <passwort>` → Hash in `config/Caddyfile`
 4. `docker compose up -d`
-5. Caddy-Passwort setzen: `caddy hash-password --plaintext <passwort>` → Hash in `config/Caddyfile`
-6. Telegram-Bot testen: `/status`, `/pause`, `/resume`
-7. Dashboard öffnen: `http://<vps-ip>`
-8. Nach erfolgreichen Tests: `bybit_testnet: false`, Startkapital einzahlen
+5. Telegram-Bot testen: `/status`, `/pause`, `/resume`
+6. Dashboard öffnen: `http://<vps-ip>`
+7. Nach erfolgreichen Tests: `bybit_testnet: false`, Startkapital einzahlen
 
 ---
 
@@ -171,4 +177,6 @@ asyncio Event Bus (pub/sub)
 | Plan 1 (Foundation) | `docs/superpowers/plans/2026-05-12-trading-bot-plan-1-foundation.md` |
 | Plan 2 (Trading Core) | `docs/superpowers/plans/2026-05-12-trading-bot-plan-2-trading-core.md` |
 | Plan 3 (Monitoring) | `docs/superpowers/plans/2026-05-12-trading-bot-plan-3-monitoring.md` |
+| Plan 4 (Production Readiness) | `docs/superpowers/plans/2026-05-13-trading-bot-plan-4-production-readiness.md` |
 | Design-Spec | `docs/superpowers/specs/2026-05-12-trading-bot-design.md` |
+| Plan 4 Design-Spec | `docs/superpowers/specs/2026-05-13-plan4-production-readiness-design.md` |
