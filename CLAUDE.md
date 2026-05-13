@@ -1,5 +1,15 @@
 # Trading Bot – Project Memory
 
+## Autonome Ausführung
+
+Um das Projekt vollständig und autonom durchzuarbeiten:
+
+```
+claude --dangerously-skip-permissions -p "Arbeite das Trading-Agent Projekt vollständig durch. Lies die CLAUDE.md, führe alle Schritte aus, erstelle alle Dateien. Frage nur bei echten Designentscheidungen oder externen API-Zugängen nach."
+```
+
+---
+
 ## Projektziel
 Vollautomatischer 24/7 Krypto-Futures-Trading-Bot für Bybit.
 Startkapital: ~250 €. Plattform: Bybit Perpetuals. Sprache: Python 3.12.
@@ -13,9 +23,10 @@ Startkapital: ~250 €. Plattform: Bybit Perpetuals. Sprache: Python 3.12.
 |---|---|---|---|
 | Plan 1 – Foundation (Core, Data, Config) | `v0.1.0-foundation` | 16 | ✅ Abgeschlossen |
 | Plan 2 – Trading Core (Strategies, Risk, Orders, Portfolio) | `v0.2.0-trading-core` | 65 | ✅ Abgeschlossen |
-| Plan 3 – Monitoring & Deployment (Backtesting, Telegram, Dashboard, Docker) | (noch kein Tag) | 83 | ⏳ Tasks 1–4 fertig, Tasks 5–7 offen |
+| Plan 3 – Monitoring & Deployment (Backtesting, Telegram, Dashboard, Docker) | `v0.3.0-monitoring` | 83 | ✅ Abgeschlossen |
+| Plan 4 – Production Readiness (CI/CD, RSI, Dashboard, Deployment) | `v0.4.0-production-ready` | 94 | ✅ Abgeschlossen |
 
-**Aktueller Test-Stand:** `83 passed` — letzter Commit: `7c1f93e`
+**Aktueller Test-Stand:** `94 passed` — Plan 4 abgeschlossen
 
 ---
 
@@ -43,7 +54,7 @@ Startkapital: ~250 €. Plattform: Bybit Perpetuals. Sprache: Python 3.12.
 | `src/strategies/registry.py` | STRATEGY_REGISTRY + load_strategies() |
 | `src/main.py` | Haupt-Orchestrierung: alle Komponenten verdrahtet + TelegramMonitor optional |
 
-### Monitoring & Deployment (Plan 3 — Teilweise fertig)
+### Monitoring & Deployment (Plan 3 — ✅ Fertig)
 | Datei | Beschreibung | Status |
 |---|---|---|
 | `src/backtesting/__init__.py` | Paket-Stub | ✅ |
@@ -54,8 +65,26 @@ Startkapital: ~250 €. Plattform: Bybit Perpetuals. Sprache: Python 3.12.
 | `src/monitoring/templates/index.html` | Hauptseite (Dark-Theme, HTMX-Polling) | ✅ |
 | `src/monitoring/templates/partials/portfolio.html` | Portfolio-Metriken-Fragment | ✅ |
 | `src/monitoring/templates/partials/trades.html` | Trades-Tabelle-Fragment | ✅ |
-| `docker-compose.yml` | Noch nicht finalisiert (nur trading-bot Service) | ⏳ Task 6 |
-| `config/Caddyfile` | Noch nicht erstellt | ⏳ Task 6 |
+| `docker-compose.yml` | Docker-Compose mit trading-bot, dashboard, caddy Services | ✅ |
+| `config/Caddyfile` | Caddy reverse proxy mit basicauth | ✅ |
+
+### CI/CD + Tooling (Plan 4)
+| Datei | Beschreibung |
+|---|---|
+| `data/.gitkeep` | Git-Platzhalter für data/-Verzeichnis |
+| `.github/workflows/ci.yml` | GitHub Actions CI (Python 3.12, pytest) |
+| `Makefile` | make test, make run, make docker-build, make lint |
+| `scripts/setup-vps.sh` | Automatisiertes VPS-Setup (Ubuntu 22.04) |
+
+### Strategien (Plan 4)
+| Datei | Beschreibung |
+|---|---|
+| `src/strategies/rsi.py` | RSI-Strategie (Überverkauf/Überkauf-Signale, deque-basiert) |
+
+### Dashboard-Erweiterungen (Plan 4)
+| Datei | Beschreibung |
+|---|---|
+| `src/monitoring/templates/partials/strategies.html` | Strategie-Übersicht-Fragment |
 
 ### Tests
 | Datei | Anzahl | Was getestet wird |
@@ -68,100 +97,6 @@ Startkapital: ~250 €. Plattform: Bybit Perpetuals. Sprache: Python 3.12.
 | `tests/unit/test_backtesting.py` | 4 | BacktestResult, OHLCV-Parsing, run(), Flatline |
 | `tests/unit/test_telegram_bot.py` | 8 | Push-Alerts, Commands (mit Auth-Guard) |
 | `tests/unit/test_dashboard.py` | 6 | FastAPI-Endpoints (httpx AsyncClient) |
-
----
-
-## Offene Tasks (Plan 3)
-
-### Task 5: main.py — BacktestEngine + Telegram verdrahten
-**Datei:** `src/main.py` (modifizieren)
-
-main.py muss ergänzt werden um:
-```python
-from src.backtesting.engine import BacktestEngine
-...
-backtest_engine = BacktestEngine(settings=settings)
-...
-# Telegram Monitor (optional)
-if settings.telegram_token and settings.telegram_chat_id:
-    from src.monitoring.telegram_bot import TelegramMonitor
-    monitor = TelegramMonitor(
-        token=settings.telegram_token,
-        chat_id=settings.telegram_chat_id,
-        event_bus=bus,
-        risk_manager=risk,
-        portfolio=tracker,
-        backtest_engine=backtest_engine,
-    )
-    await monitor.start()
-...
-if monitor:
-    await monitor.stop()
-```
-Nach diesem Task: `python -m pytest -v --tb=short` → mind. 83 passed
-
-### Task 6: Docker-Compose-Finalisierung
-**Dateien:** `docker-compose.yml` (ersetzen), `config/Caddyfile` (neu)
-
-`docker-compose.yml` (vollständig ersetzen):
-```yaml
-version: "3.9"
-services:
-  trading-bot:
-    build: .
-    restart: unless-stopped
-    env_file: config/.env
-    volumes:
-      - ./config:/app/config:ro
-      - bot-data:/app/data
-    logging:
-      driver: "json-file"
-      options: {max-size: "10m", max-file: "3"}
-
-  dashboard:
-    build: .
-    command: uvicorn src.monitoring.dashboard:app --host 0.0.0.0 --port 8080
-    restart: unless-stopped
-    env_file: config/.env
-    environment:
-      - DASHBOARD_DB_PATH=/app/data/portfolio.db
-    volumes:
-      - ./config:/app/config:ro
-      - bot-data:/app/data:ro
-    depends_on: [trading-bot]
-
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports: ["80:80", "443:443"]
-    volumes:
-      - ./config/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-    depends_on: [dashboard]
-
-volumes:
-  bot-data:
-  caddy-data:
-```
-
-`config/Caddyfile` (neu erstellen):
-```
-:80 {
-    basicauth {
-        admin $2a$14$Zkx19XLiW6VYouLHR5NmfOFU0z2GTNmpkT/5qqR7hx4IjWJPDhjm2
-    }
-    reverse_proxy dashboard:8080
-}
-```
-Passwort-Hash erneuern vor Deployment: `caddy hash-password --plaintext <passwort>`
-
-Commit: `git add docker-compose.yml config/Caddyfile && git commit -m "feat: finalize docker-compose with dashboard service and Caddy reverse proxy"`
-
-### Task 7: Abschluss-Test + Tag
-```bash
-python -m pytest -v --tb=short        # mind. 83 passed
-git tag v0.3.0-monitoring
-```
 
 ---
 
