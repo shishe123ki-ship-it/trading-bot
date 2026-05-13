@@ -242,3 +242,64 @@ async def test_bb_generates_close_signal_when_price_returns_to_sma():
     assert result is not None
     assert result.side == "close"
     assert s._in_position is False
+
+
+# --- RSI Strategy ---
+from src.strategies.rsi import RsiStrategy
+
+
+def _make_candle_rsi(symbol: str, close: float) -> Candle:
+    from datetime import datetime, timezone
+    return Candle(
+        symbol=symbol, interval="15",
+        open_time=datetime.now(tz=timezone.utc),
+        open=close, high=close * 1.001, low=close * 0.999,
+        close=close, volume=1.0, is_closed=True,
+    )
+
+
+async def test_rsi_insufficient_data_no_signal():
+    cfg = StrategyEntry(name="rsi", params={"period": 14, "oversold": 30.0, "overbought": 70.0})
+    strategy = RsiStrategy(config=cfg)
+    result = await strategy.on_candle(_make_candle_rsi("BTCUSDT", 50000.0))
+    assert result is None
+
+
+async def test_rsi_falling_prices_generates_long():
+    cfg = StrategyEntry(name="rsi", params={"period": 3, "oversold": 30.0, "overbought": 70.0})
+    strategy = RsiStrategy(config=cfg)
+    sig = None
+    for price in [50000, 49000, 48000, 47000]:
+        sig = await strategy.on_candle(_make_candle_rsi("BTCUSDT", float(price)))
+    assert sig is not None
+    assert sig.side == "long"
+    assert sig.strategy_id == "rsi"
+
+
+async def test_rsi_rising_prices_closes_position():
+    cfg = StrategyEntry(name="rsi", params={"period": 3, "oversold": 30.0, "overbought": 70.0})
+    strategy = RsiStrategy(config=cfg)
+    strategy._in_position = True
+    sig = None
+    for price in [47000, 48000, 49000, 50000]:
+        sig = await strategy.on_candle(_make_candle_rsi("BTCUSDT", float(price)))
+    assert sig is not None
+    assert sig.side == "close"
+
+
+async def test_rsi_constant_prices_no_signal():
+    cfg = StrategyEntry(name="rsi", params={"period": 3, "oversold": 30.0, "overbought": 70.0})
+    strategy = RsiStrategy(config=cfg)
+    sig = None
+    for _ in range(5):
+        sig = await strategy.on_candle(_make_candle_rsi("BTCUSDT", 50000.0))
+    assert sig is None
+
+
+async def test_rsi_get_state_returns_rsi_value():
+    cfg = StrategyEntry(name="rsi", params={"period": 3})
+    strategy = RsiStrategy(config=cfg)
+    state = strategy.get_state()
+    assert "rsi" in state
+    assert "in_position" in state
+    assert state["period"] == 3

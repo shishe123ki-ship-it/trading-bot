@@ -34,3 +34,11 @@ strategies:
     params:
       period: 20
       std_dev: 2.0
+  - name: rsi
+    enabled: false
+    symbols: ["BTCUSDT"]
+    interval: "15"
+    params:
+      period: 14
+      oversold: 30.0
+      overbought: 70.0

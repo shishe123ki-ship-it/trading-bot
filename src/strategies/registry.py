@@ -5,11 +5,13 @@ from src.strategies.base import BaseStrategy
 from src.strategies.bb_reversion import BollingerReversionStrategy
 from src.strategies.ema_cross import EmaCrossStrategy
 from src.strategies.grid import GridStrategy
+from src.strategies.rsi import RsiStrategy
 
 STRATEGY_REGISTRY: dict[str, type[BaseStrategy]] = {
     "ema_cross": EmaCrossStrategy,
     "grid": GridStrategy,
     "bb_reversion": BollingerReversionStrategy,
+    "rsi": RsiStrategy,
 }
 
 
