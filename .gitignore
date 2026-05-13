@@ -2,6 +2,9 @@
 config/.env
 .env
 
+# Data
+data/*.db
+
 # Python
 __pycache__/
 *.pyc
