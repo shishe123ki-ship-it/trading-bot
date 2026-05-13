@@ -1,0 +1,11 @@
+# Passwort-Hash generieren (auf dem VPS ausfuehren):
+#   caddy hash-password --plaintext <ihr-passwort>
+# Dann den Hash unten ersetzen.
+# UNBEDINGT vor dem Deployment aendern!
+
+:80 {
+    basicauth {
+        admin $2a$14$Zkx19XLiW6VYouLHR5NmfOFU0z2GTNmpkT/5qqR7hx4IjWJPDhjm2
+    }
+    reverse_proxy dashboard:8080
+}

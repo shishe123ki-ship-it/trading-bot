@@ -14,5 +14,31 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  dashboard:
+    build: .
+    command: uvicorn src.monitoring.dashboard:app --host 0.0.0.0 --port 8080
+    restart: unless-stopped
+    env_file: config/.env
+    environment:
+      - DASHBOARD_DB_PATH=/app/data/portfolio.db
+    volumes:
+      - ./config:/app/config:ro
+      - bot-data:/app/data:ro
+    depends_on:
+      - trading-bot
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on:
+      - dashboard
+
 volumes:
   bot-data:
+  caddy-data:
