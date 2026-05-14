@@ -32,6 +32,18 @@ CREATE TABLE IF NOT EXISTS positions (
     strategy_id TEXT NOT NULL,
     opened_at   TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS bot_status (
+    id           INTEGER PRIMARY KEY CHECK (id = 1),
+    timestamp    TEXT    NOT NULL,
+    ws_connected INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS strategy_overrides (
+    strategy_id TEXT    PRIMARY KEY,
+    enabled     INTEGER NOT NULL DEFAULT 1,
+    updated_at  TEXT    NOT NULL
+);
 """
 
 

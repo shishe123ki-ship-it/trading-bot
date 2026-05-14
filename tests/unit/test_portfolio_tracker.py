@@ -80,3 +80,19 @@ async def test_get_trades_returns_list(tracker):
     await tracker._on_fill(Event(type=EventType.ORDER_FILLED, data=_fill(order_id="O2")))
     trades = await tracker.get_trades(limit=10)
     assert len(trades) == 2
+
+
+async def test_creates_bot_status_table(tracker):
+    cursor = await tracker._db.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='bot_status'"
+    )
+    row = await cursor.fetchone()
+    assert row is not None
+
+
+async def test_creates_strategy_overrides_table(tracker):
+    cursor = await tracker._db.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='strategy_overrides'"
+    )
+    row = await cursor.fetchone()
+    assert row is not None
