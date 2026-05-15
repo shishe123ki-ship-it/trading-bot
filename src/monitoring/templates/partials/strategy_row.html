@@ -1,5 +1,13 @@
 <tr id="strategy-{{ strategy_id }}">
   <td>{{ strategy_id }}</td>
   <td>{{ trade_count }}</td>
-  <td>{% if enabled %}✅{% else %}⬜{% endif %}</td>
+  <td>
+    <button
+      hx-post="/api/strategies/{{ strategy_id }}/toggle"
+      hx-target="#strategy-{{ strategy_id }}"
+      hx-swap="outerHTML"
+      style="background:none;border:none;cursor:pointer;font-size:1.2rem;padding:0">
+      {% if enabled %}✅{% else %}⬜{% endif %}
+    </button>
+  </td>
 </tr>

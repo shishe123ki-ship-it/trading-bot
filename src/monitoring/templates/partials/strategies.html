@@ -1,13 +1,26 @@
 {% if strategies %}
 <table>
   <thead>
-    <tr><th>Strategie</th><th>Trades</th></tr>
+    <tr>
+      <th>Strategie</th>
+      <th>Trades</th>
+      <th>An/Aus</th>
+    </tr>
   </thead>
   <tbody>
     {% for s in strategies %}
-    <tr>
+    <tr id="strategy-{{ s.strategy_id }}">
       <td>{{ s.strategy_id }}</td>
       <td>{{ s.trade_count }}</td>
+      <td>
+        <button
+          hx-post="/api/strategies/{{ s.strategy_id }}/toggle"
+          hx-target="#strategy-{{ s.strategy_id }}"
+          hx-swap="outerHTML"
+          style="background:none;border:none;cursor:pointer;font-size:1.2rem;padding:0">
+          {% if s.enabled %}✅{% else %}⬜{% endif %}
+        </button>
+      </td>
     </tr>
     {% endfor %}
   </tbody>

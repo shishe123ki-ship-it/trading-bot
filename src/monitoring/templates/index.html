@@ -25,6 +25,13 @@
 <body>
   <h1>🤖 Trading Bot</h1>
 
+  <div hx-get="/partials/status"
+       hx-trigger="load, every 15s"
+       hx-swap="innerHTML"
+       style="margin-bottom:1.5rem;font-size:0.95rem">
+    <span style="color:#8b949e">Verbindung wird geprüft&#8230;</span>
+  </div>
+
   <h2>Portfolio</h2>
   <div class="card"
        hx-get="/partials/portfolio"
