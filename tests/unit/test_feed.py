@@ -89,3 +89,9 @@ def test_feed_subscribe_stores_subscription():
     feed.subscribe("ETHUSDT", "15")
     assert ("BTCUSDT", "5") in feed._subscriptions
     assert ("ETHUSDT", "15") in feed._subscriptions
+
+
+def test_feed_initially_not_connected():
+    bus = EventBus()
+    feed = BybitFeed(event_bus=bus, testnet=True)
+    assert feed.connected is False

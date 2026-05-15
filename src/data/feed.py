@@ -19,6 +19,11 @@ class BybitFeed:
         self._ws: WebSocket | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
         self._subscriptions: list[tuple[str, str]] = []
+        self._connected: bool = False
+
+    @property
+    def connected(self) -> bool:
+        return self._connected
 
     def subscribe(self, symbol: str, interval: str) -> None:
         self._subscriptions.append((symbol, interval))
@@ -71,9 +76,11 @@ class BybitFeed:
                 callback=self._handle_kline,
             )
             log.info("feed_subscribed", symbol=symbol, interval=interval)
+        self._connected = True
         log.info("feed_started", testnet=self._testnet)
 
     async def stop(self) -> None:
         if self._ws:
             self._ws.exit()
+        self._connected = False
         log.info("feed_stopped")
