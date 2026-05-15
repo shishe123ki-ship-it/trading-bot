@@ -188,3 +188,112 @@ async def test_strategies_partial_returns_html(client):
     resp = await client.get("/partials/strategies")
     assert resp.status_code == 200
     assert "text/html" in resp.headers["content-type"]
+
+
+import sqlite3 as _sqlite3
+
+
+@pytest.fixture
+def temp_db_full(tmp_path) -> Path:
+    """DB mit allen 4 Tabellen inkl. bot_status und strategy_overrides."""
+    db_path = tmp_path / "test_full.db"
+    conn = _sqlite3.connect(db_path)
+    conn.executescript("""
+        CREATE TABLE trades (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id TEXT, symbol TEXT, side TEXT,
+            qty REAL, avg_price REAL, fee REAL,
+            strategy_id TEXT, timestamp TEXT
+        );
+        CREATE TABLE positions (
+            symbol TEXT PRIMARY KEY, side TEXT, qty REAL,
+            entry_price REAL, strategy_id TEXT, opened_at TEXT
+        );
+        CREATE TABLE bot_status (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            timestamp TEXT NOT NULL,
+            ws_connected INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE TABLE strategy_overrides (
+            strategy_id TEXT PRIMARY KEY,
+            enabled INTEGER NOT NULL DEFAULT 1,
+            updated_at TEXT NOT NULL
+        );
+    """)
+    conn.execute(
+        "INSERT INTO trades VALUES "
+        "(1,'O1','BTCUSDT','Buy',0.001,50000,0.027,'ema_cross','2024-01-01T10:00:00')"
+    )
+    conn.execute(
+        "INSERT INTO strategy_overrides VALUES "
+        "('ema_cross', 1, '2024-01-01T10:00:00')"
+    )
+    conn.commit()
+    conn.close()
+    return db_path
+
+
+@pytest.fixture
+async def client_full(temp_db_full):
+    original = dashboard_module.DB_PATH
+    dashboard_module.DB_PATH = temp_db_full
+    from src.monitoring.dashboard import app
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://test",
+    ) as c:
+        yield c
+    dashboard_module.DB_PATH = original
+
+
+async def test_status_api_no_db(tmp_path):
+    original = dashboard_module.DB_PATH
+    dashboard_module.DB_PATH = tmp_path / "nonexistent.db"
+    from src.monitoring.dashboard import app
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as c:
+        resp = await c.get("/api/status")
+    dashboard_module.DB_PATH = original
+    assert resp.status_code == 200
+    assert resp.json()["connected"] is False
+
+
+async def test_status_api_connected(client_full, temp_db_full):
+    from datetime import datetime, timezone as tz
+    now = datetime.now(tz.utc).isoformat()
+    conn = _sqlite3.connect(temp_db_full)
+    conn.execute("INSERT OR REPLACE INTO bot_status VALUES (1, ?, 1)", (now,))
+    conn.commit()
+    conn.close()
+
+    resp = await client_full.get("/api/status")
+    assert resp.status_code == 200
+    assert resp.json()["connected"] is True
+
+
+async def test_status_api_stale(client_full, temp_db_full):
+    conn = _sqlite3.connect(temp_db_full)
+    conn.execute(
+        "INSERT OR REPLACE INTO bot_status VALUES (1, ?, 1)",
+        ("2020-01-01T00:00:00+00:00",),
+    )
+    conn.commit()
+    conn.close()
+
+    resp = await client_full.get("/api/status")
+    assert resp.status_code == 200
+    assert resp.json()["connected"] is False
+
+
+async def test_toggle_strategy_disables(client_full):
+    resp = await client_full.post("/api/strategies/ema_cross/toggle")
+    assert resp.status_code == 200
+    assert "text/html" in resp.headers["content-type"]
+    assert "⬜" in resp.text
+
+
+async def test_toggle_strategy_twice_re_enables(client_full):
+    await client_full.post("/api/strategies/ema_cross/toggle")
+    resp = await client_full.post("/api/strategies/ema_cross/toggle")
+    assert "✅" in resp.text

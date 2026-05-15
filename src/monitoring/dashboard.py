@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 
 import aiosqlite
@@ -89,8 +90,104 @@ async def strategies_summary() -> list[dict]:
         cursor = await db.execute(
             "SELECT strategy_id, COUNT(*) as trade_count FROM trades GROUP BY strategy_id"
         )
-        rows = await cursor.fetchall()
-        return [dict(row) for row in rows]
+        trade_rows = {row["strategy_id"]: row["trade_count"] for row in await cursor.fetchall()}
+
+        try:
+            cursor = await db.execute(
+                "SELECT strategy_id, enabled FROM strategy_overrides"
+            )
+            override_rows = await cursor.fetchall()
+        except Exception:
+            override_rows = []
+
+    result = [
+        {
+            "strategy_id": row["strategy_id"],
+            "trade_count": trade_rows.get(row["strategy_id"], 0),
+            "enabled": bool(row["enabled"]),
+        }
+        for row in override_rows
+    ]
+
+    if not result:
+        result = [
+            {"strategy_id": sid, "trade_count": count, "enabled": True}
+            for sid, count in trade_rows.items()
+        ]
+
+    return result
+
+
+@app.get("/api/status")
+async def bot_status_api() -> dict:
+    if not DB_PATH.exists():
+        return {"connected": False, "last_seen": None}
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        try:
+            cursor = await db.execute(
+                "SELECT timestamp, ws_connected FROM bot_status WHERE id=1"
+            )
+            row = await cursor.fetchone()
+        except Exception:
+            return {"connected": False, "last_seen": None}
+    if row is None:
+        return {"connected": False, "last_seen": None}
+    last_seen: str = row["timestamp"]
+    try:
+        dt = datetime.fromisoformat(last_seen)
+        age = (datetime.now(timezone.utc) - dt).total_seconds()
+        connected = row["ws_connected"] == 1 and age < 60
+    except Exception:
+        connected = False
+    return {"connected": connected, "last_seen": last_seen}
+
+
+@app.get("/partials/status", response_class=HTMLResponse)
+async def status_partial(request: Request) -> HTMLResponse:
+    data = await bot_status_api()
+    return templates.TemplateResponse(request, "partials/status.html", data)
+
+
+@app.post("/api/strategies/{strategy_id}/toggle", response_class=HTMLResponse)
+async def toggle_strategy(request: Request, strategy_id: str) -> HTMLResponse:
+    if not DB_PATH.exists():
+        return HTMLResponse(
+            f'<tr id="strategy-{strategy_id}"><td colspan="3">DB nicht gefunden</td></tr>'
+        )
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            "SELECT enabled FROM strategy_overrides WHERE strategy_id=?",
+            (strategy_id,),
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            return HTMLResponse(
+                f'<tr id="strategy-{strategy_id}"><td colspan="3">Nicht gefunden</td></tr>'
+            )
+        new_enabled = 0 if row["enabled"] else 1
+        now = datetime.now(timezone.utc).isoformat()
+        await db.execute(
+            "UPDATE strategy_overrides SET enabled=?, updated_at=? WHERE strategy_id=?",
+            (new_enabled, now, strategy_id),
+        )
+        await db.commit()
+        cursor = await db.execute(
+            "SELECT COUNT(*) FROM trades WHERE strategy_id=?", (strategy_id,)
+        )
+        count_row = await cursor.fetchone()
+        trade_count = count_row[0] if count_row else 0
+
+    return templates.TemplateResponse(
+        request,
+        "partials/strategy_row.html",
+        {
+            "strategy_id": strategy_id,
+            "enabled": bool(new_enabled),
+            "trade_count": trade_count,
+        },
+    )
 
 
 @app.get("/partials/strategies", response_class=HTMLResponse)
