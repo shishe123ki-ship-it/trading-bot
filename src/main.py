@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import aiosqlite
-import structlog
 
 from src.backtesting.engine import BacktestEngine
 from src.core.config import Settings
