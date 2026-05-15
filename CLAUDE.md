@@ -173,13 +173,21 @@ asyncio Event Bus (pub/sub)
 - [ ] Telegram — wird NICHT verwendet
 
 **Deployment-Schritte:**
-1. SSH auf VPS: `ssh root@128.140.110.145`
-2. Setup-Skript ausführen: `curl -fsSL https://raw.githubusercontent.com/shishe123ki-ship-it/trading-bot/master/scripts/setup-vps.sh | bash -s https://github.com/shishe123ki-ship-it/trading-bot.git`
+1. SSH auf VPS: `ssh root@128.140.110.145` (Root-Passwort wurde neu gesetzt)
+2. Setup-Skript ausführen — Repo wurde bereits geclont nach `/opt/trading-bot`, aber Docker-Installation schlug fehl. Neu ausführen: `bash /opt/trading-bot/scripts/setup-vps.sh` oder Docker manuell installieren: `curl -fsSL https://get.docker.com | sh && systemctl enable --now docker`
 3. API-Keys in `config/.env` eintragen (TELEGRAM_TOKEN und TELEGRAM_CHAT_ID leer lassen)
 4. Caddy-Passwort setzen: `docker run --rm caddy:2-alpine caddy hash-password --plaintext <passwort>` → Hash in `config/Caddyfile`
-5. `docker compose up -d`
+5. `cd /opt/trading-bot && docker compose up -d`
 6. Dashboard öffnen: `http://128.140.110.145`
 7. Nach erfolgreichen Tests: `bybit_testnet: false` in `config/config.yaml`, Startkapital einzahlen
+
+**Aktueller Deployment-Stand (2026-05-15):**
+- [x] Repo geclont nach `/opt/trading-bot`
+- [x] GitHub Repo öffentlich (für einfaches Clonen)
+- [ ] Docker-Installation fehlgeschlagen (exit-code Fehler) — beim nächsten Login beheben
+- [ ] .env mit API-Keys befüllen
+- [ ] docker compose up -d
+- [ ] Dashboard testen
 
 ---
 
